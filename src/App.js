@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
 
-/* Each sound is rendered in a canvas, each canvas is rendered in app*/
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 //only create audio context once
 
@@ -32,6 +31,7 @@ class Sound extends React.Component {
     this.gainNode.connect(this.analyser);
     this.gainNode.connect(this.context.destination);
     this.analyser.fftSize = 2048;
+    this.bufferLength = this.props.analyser.frequencyBinCount;
   }
   play() {
     const playSound = !this.state.play;
@@ -48,7 +48,7 @@ class Sound extends React.Component {
   render() {
     return (
       <div className="soundInit" onClick={() => this.play}>
-        <CanvasComponent analyser={this.analyser}/>
+        <CanvasComponent analyser={this.analyser} bufferLength={this.bufferLength}/>
       </div>
     );
   }
@@ -58,10 +58,14 @@ class CanvasComponent extends React.Component {
   constructor(props) {
     super(props);
   }
+  renderCanvas() {
+    return (
+      <canvas width={1024} height={256} onClick={this.props.onClick} ref={(c) => this.canvasContext = c.getContext('2d')} />
+    );
+  }
   updateCanvas() {
-    this.bufferLength = this.props.analyser.frequencyBinCount;
-    this.dataArray = new Uint8Array(this.bufferLength);
-    this.canvasContext = this.refs.canvas.getContext('2d');
+    this.renderCanvas();
+    this.dataArray = new Uint8Array(this.props.bufferLength);
     this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
     this.drawVisual = requestAnimationFrame(this.updateCanvas());
     this.props.analyser.getByteTimeDomainData(this.dataArray);
@@ -69,9 +73,9 @@ class CanvasComponent extends React.Component {
     this.canvasContext.lineWidth = 2;
     this.canvasContext.strokeStyle = 'rgb(0,0,0)';
     this.canvasContext.beginPath();
-    var sliceWidth = this.refs.canvas.width * 1.0 / this.bufferLength;
+    var sliceWidth = this.refs.canvas.width * 1.0 / this.props.bufferLength;
     var x=0;
-    for (var i = 0; i < this.bufferLength; i++) {
+    for (var i = 0; i < this.props.bufferLength; i++) {
       var v = this.dataArray[i] / 128.0;
       var y = v * this.refs.canvas.height / 2;
       if (i === 0) {
@@ -86,9 +90,10 @@ class CanvasComponent extends React.Component {
 
   }
   render() {
-    this.updateCanvas();
     return (
-      <canvas width={1024} height={256} onClick={this.props.onClick}/>
+      <div>
+        {this.updateCanvas}
+      </div>
     );
   }
 }
