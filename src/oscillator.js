@@ -8,7 +8,7 @@ var oscillator = audioCtx.createOscillator();
 oscillator.type = "sine";
 oscillator.frequency.value = 440; //note
 oscillator.start(1); //wait 1 sec
-gainNode = audioCtx.createGain();
+var gainNode = audioCtx.createGain();
 gainNode.gain.value = 0; //volume
 oscillator.connect(gainNode);
 var analyser = audioCtx.createAnalyser();
