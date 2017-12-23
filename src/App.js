@@ -9,6 +9,9 @@ class Sound extends React.Component {
     super(props);
     this.state = {play: false};
   }
+  componentDidMount() {
+    this.init();
+  }
   init(gainValue) {
     this.context = audioContext;
     this.oscillator = this.context.createOscillator();
@@ -25,34 +28,33 @@ class Sound extends React.Component {
       this.oscillator.type = "triangle";
     }
 
-    this.gainNode = this.context.createGain(); //gain node controls volume
-    this.oscillator.connect(this.gainNode); //connect oscillator to volume control
-    this.gainNode.value = gainValue; //initialize volume to 0
     this.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
-    this.oscillator.start();
+    this.oscillator.connect(this.context.destination);
+    this.oscillator.start(0.5);
+
+
+    this.gainNode = this.context.createGain(); //gain node controls volume
+    this.gainNode.gain.value = 1;
+    this.oscillator.connect(this.gainNode); //connect oscillator to volume control
+
+
+
     this.analyser = this.context.createAnalyser(); //analyser evaluates drawings
     this.bufferLength = this.analyser.frequencyBinCount;
     this.dataArray = new Uint8Array(this.bufferLength);
     this.gainNode.connect(this.analyser);
     this.gainNode.connect(this.context.destination);
     this.analyser.fftSize = 2048;
-    this.analyser.getByteTimeDomainData(this.dataArray);
+    this.analyser.getByteTimeDomainData(this.dataArray); 
   }
   play() {
     const playSound = !this.state.play;
     this.setState({play: playSound});
-    let gainValue;
-    if (!this.state.play) {
-      gainValue = 0;
-    }
-    else {
-      gainValue = 1; //TODO: make a function to customize gain
-    }
-    return(this.init(gainValue));
   }
   render() {
+    {this.init}
     return (
-      <div className="soundInit" onClick={() => this.play}>
+      <div className="soundInit">
         <CanvasComponent analyser={this.analyser} xPos="0" yPos="0" bufferLength={this.bufferLength} dataArray={this.dataArray}/>
       </div>
     );
@@ -90,8 +92,11 @@ class CanvasComponent extends React.Component {
       canvasContext.stroke();
     }
     render() {
+        {this.draw}
         return (
-            <canvas ref="canvas" width={300} height={256}/>
+            <div>
+              <canvas ref="canvas" width={300} height={256} />
+            </div>
         );
     }
 }
@@ -102,6 +107,7 @@ class App extends Component {
     return (
       <div className="App">
         <Sound wave="sine" />
+        <button>Play</button>
       </div>
     );
   }
