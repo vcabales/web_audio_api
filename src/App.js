@@ -9,35 +9,33 @@ class Sound extends React.Component {
   constructor(props) {
     super(props);
     this.state = {play: false};
-    this.init = this.init.bind(this);
-    this.play = this.play.bind(this);
   }
   init(gainValue) {
-    this.props.context = audioContext;
-    this.props.oscillator = this.props.context.createOscillator();
+    this.context = audioContext;
+    this.oscillator = this.context.createOscillator();
     if (this.props.wave === "sine") {
-      this.props.oscillator.type = "sine";
+      this.oscillator.type = "sine";
     }
     else if (this.props.wave === "sawtooth") {
-      this.props.oscillator.type = "sawtooth";
+      this.oscillator.type = "sawtooth";
     }
     else if (this.props.wave === "square") {
-      this.props.oscillator.type = "square";
+      this.oscillator.type = "square";
     }
 
-    this.props.gainNode = this.props.context.createGain(); //gain node controls volume
-    this.props.oscillator.context(this.props.gainNode); //connect oscillator to volume control
-    this.props.gainNode.value = gainValue; //initialize volume to 0
-    this.props.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
-    this.props.oscillator.start();
-    this.props.analyser = this.props.context.createAnalyser(); //analyser evaluates drawings
-    this.props.gainNode.connect(this.props.analyser);
-    this.props.gainNode.connect(this.props.context.destination);
+    this.gainNode = this.context.createGain(); //gain node controls volume
+    this.oscillator.connect(this.gainNode); //connect oscillator to volume control
+    this.gainNode.value = gainValue; //initialize volume to 0
+    this.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
+    this.oscillator.start();
+    this.analyser = this.context.createAnalyser(); //analyser evaluates drawings
+    this.gainNode.connect(this.analyser);
+    this.gainNode.connect(this.context.destination);
+    this.analyser.fftSize = 2048;
   }
-  draw() {
-
-  }
-  render() {
+  play() {
+    const playSound = !this.state.play;
+    this.setState({play: playSound});
     let gainValue;
     if (!this.state.play) {
       gainValue = 0;
@@ -45,13 +43,52 @@ class Sound extends React.Component {
     else {
       gainValue = 1; //TODO: make a function to customize gain
     }
+    return(this.init(gainValue));
+  }
+  render() {
     return (
-      <div>
-        {this.init(gainValue)}
-        <canvas width="1024" height="256" onClick={() => this.handleClick()}>
-          {this.draw()}
-        </canvas>
+      <div className="soundInit" onClick={() => this.play}>
+        <CanvasComponent analyser={this.analyser}/>
       </div>
+    );
+  }
+}
+
+class CanvasComponent extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+  updateCanvas() {
+    this.bufferLength = this.props.analyser.frequencyBinCount;
+    this.dataArray = new Uint8Array(this.bufferLength);
+    this.canvasContext = this.refs.canvas.getContext('2d');
+    this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
+    this.drawVisual = requestAnimationFrame(this.updateCanvas());
+    this.props.analyser.getByteTimeDomainData(this.dataArray);
+    this.canvasContext.fillStyle = 'rgb(200,200,200)';
+    this.canvasContext.lineWidth = 2;
+    this.canvasContext.strokeStyle = 'rgb(0,0,0)';
+    this.canvasContext.beginPath();
+    var sliceWidth = this.refs.canvas.width * 1.0 / this.bufferLength;
+    var x=0;
+    for (var i = 0; i < this.bufferLength; i++) {
+      var v = this.dataArray[i] / 128.0;
+      var y = v * this.refs.canvas.height / 2;
+      if (i === 0) {
+        this.canvasContext.moveTo(x, y);
+      } else {
+        this.canvasContext.lineTo(x, y);
+      }
+      x += sliceWidth;
+    }
+    this.canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
+    this.canvasContext.stroke();
+
+  }
+  render() {
+    this.updateCanvas();
+    return (
+      <canvas width={1024} height={256} onClick={this.props.onClick}/>
     );
   }
 }
@@ -60,11 +97,10 @@ class Sound extends React.Component {
 
 class App extends Component {
   render() {
+
     return (
       <div className="App">
         <Sound wave="sine" />
-        <Sound wave="sawtooth" />
-        <Sound wave="square" />
       </div>
     );
   }
