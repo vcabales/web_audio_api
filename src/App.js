@@ -21,6 +21,9 @@ class Sound extends React.Component {
     else if (this.props.wave === "square") {
       this.oscillator.type = "square";
     }
+    else if (this.props.wave === "triangle") {
+      this.oscillator.type = "triangle";
+    }
 
     this.gainNode = this.context.createGain(); //gain node controls volume
     this.oscillator.connect(this.gainNode); //connect oscillator to volume control
@@ -28,10 +31,12 @@ class Sound extends React.Component {
     this.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
     this.oscillator.start();
     this.analyser = this.context.createAnalyser(); //analyser evaluates drawings
+    this.bufferLength = this.analyser.frequencyBinCount;
+    this.dataArray = new Uint8Array(this.bufferLength);
     this.gainNode.connect(this.analyser);
     this.gainNode.connect(this.context.destination);
     this.analyser.fftSize = 2048;
-    this.bufferLength = this.props.analyser.frequencyBinCount;
+    this.analyser.getByteTimeDomainData(this.dataArray);
   }
   play() {
     const playSound = !this.state.play;
@@ -48,57 +53,48 @@ class Sound extends React.Component {
   render() {
     return (
       <div className="soundInit" onClick={() => this.play}>
-        <CanvasComponent analyser={this.analyser} bufferLength={this.bufferLength}/>
+        <CanvasComponent analyser={this.analyser} xPos="0" yPos="0" bufferLength={this.bufferLength} dataArray={this.dataArray}/>
       </div>
     );
   }
 }
 
 class CanvasComponent extends React.Component {
-  constructor(props) {
-    super(props);
-  }
-  renderCanvas() {
-    return (
-      <canvas width={1024} height={256} onClick={this.props.onClick} ref={(c) => this.canvasContext = c.getContext('2d')} />
-    );
-  }
-  updateCanvas() {
-    this.renderCanvas();
-    this.dataArray = new Uint8Array(this.props.bufferLength);
-    this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
-    this.drawVisual = requestAnimationFrame(this.updateCanvas());
-    this.props.analyser.getByteTimeDomainData(this.dataArray);
-    this.canvasContext.fillStyle = 'rgb(200,200,200)';
-    this.canvasContext.lineWidth = 2;
-    this.canvasContext.strokeStyle = 'rgb(0,0,0)';
-    this.canvasContext.beginPath();
-    var sliceWidth = this.refs.canvas.width * 1.0 / this.props.bufferLength;
-    var x=0;
-    for (var i = 0; i < this.props.bufferLength; i++) {
-      var v = this.dataArray[i] / 128.0;
-      var y = v * this.refs.canvas.height / 2;
-      if (i === 0) {
-        this.canvasContext.moveTo(x, y);
-      } else {
-        this.canvasContext.lineTo(x, y);
-      }
-      x += sliceWidth;
+    componentDidMount() { //only called one time, gives access to refs of component's children
+      this.updateCanvas();
     }
-    this.canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
-    this.canvasContext.stroke();
-
-  }
-  render() {
-    return (
-      <div>
-        {this.updateCanvas}
-      </div>
-    );
-  }
+    updateCanvas() {
+      const canvasContext = this.refs.canvas.getContext('2d');
+      canvasContext.fillStyle = 'rgb(200,200,200)';
+      canvasContext.fillRect(this.props.xPos, this.props.yPos, this.refs.canvas.width, this.refs.canvas.height);
+    }
+    draw() {
+      const canvasContext = this.refs.canvas.getContext('2d');
+      this.drawVisual = requestAnimationFrame(this.draw());
+      canvasContext.lineWidth = 2;
+      canvasContext.strokeStyle = 'rgb(0,0,0)';
+      canvasContext.beginPath();
+      var sliceWidth = this.refs.canvas.width * 1.0 / this.props.bufferLength;
+      var x=0;
+      for (var i = 0; i < this.props.bufferLength; i++) {
+        var v = this.props.dataArray[i] / 128.0;
+        var y = v * this.refs.canvas.height / 2;
+        if (i === 0) {
+          this.canvasContext.moveTo(x, y);
+        } else {
+          this.canvasContext.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
+      canvasContext.stroke();
+    }
+    render() {
+        return (
+            <canvas ref="canvas" width={300} height={256}/>
+        );
+    }
 }
-
-//Or: Have Sound class return init with gain value, CanvasComponent class handles drawing
 
 class App extends Component {
   render() {
