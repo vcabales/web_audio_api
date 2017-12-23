@@ -14,6 +14,8 @@ class Sound extends React.Component {
   }
   init(gainValue) {
     this.context = audioContext;
+
+    /* oscillator initialization */
     this.oscillator = this.context.createOscillator();
     if (this.props.wave === "sine") {
       this.oscillator.type = "sine";
@@ -27,25 +29,23 @@ class Sound extends React.Component {
     else if (this.props.wave === "triangle") {
       this.oscillator.type = "triangle";
     }
-
     this.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
-    this.oscillator.connect(this.context.destination);
+
+    /* volume control initialization */
     this.oscillator.start(0.5);
-
-
     this.gainNode = this.context.createGain(); //gain node controls volume
-    this.gainNode.gain.value = 1;
+    this.gainNode.gain.value = 0;
     this.oscillator.connect(this.gainNode); //connect oscillator to volume control
+    this.gainNode.connect(this.context.destination);
 
-
-
+    /* Initialize analyser */
     this.analyser = this.context.createAnalyser(); //analyser evaluates drawings
+    this.analyser.fftSize = 2048;
     this.bufferLength = this.analyser.frequencyBinCount;
     this.dataArray = new Uint8Array(this.bufferLength);
-    this.gainNode.connect(this.analyser);
-    this.gainNode.connect(this.context.destination);
-    this.analyser.fftSize = 2048;
-    this.analyser.getByteTimeDomainData(this.dataArray); 
+    this.analyser.getByteTimeDomainData(this.dataArray);
+    this.gainNode.connect(this.analyser); //connect volume control to analyser
+
   }
   play() {
     const playSound = !this.state.play;
@@ -55,20 +55,24 @@ class Sound extends React.Component {
     {this.init}
     return (
       <div className="soundInit">
-        <CanvasComponent analyser={this.analyser} xPos="0" yPos="0" bufferLength={this.bufferLength} dataArray={this.dataArray}/>
+        <CanvasComponent />
       </div>
     );
   }
 }
 
 class CanvasComponent extends React.Component {
+    constructor(props) {
+      super(props);
+    }
     componentDidMount() { //only called one time, gives access to refs of component's children
       this.updateCanvas();
+      //this.draw();
     }
     updateCanvas() {
       const canvasContext = this.refs.canvas.getContext('2d');
       canvasContext.fillStyle = 'rgb(200,200,200)';
-      canvasContext.fillRect(this.props.xPos, this.props.yPos, this.refs.canvas.width, this.refs.canvas.height);
+      canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
     }
     draw() {
       const canvasContext = this.refs.canvas.getContext('2d');
@@ -92,7 +96,6 @@ class CanvasComponent extends React.Component {
       canvasContext.stroke();
     }
     render() {
-        {this.draw}
         return (
             <div>
               <canvas ref="canvas" width={300} height={256} />
