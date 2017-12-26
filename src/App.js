@@ -8,11 +8,12 @@ class Sound extends React.Component {
   constructor(props) {
     super(props);
     this.state = {play: false};
+    this.play = this.play.bind(this);
   }
   componentDidMount() {
     this.init();
   }
-  init(gainValue) {
+  init() {
     this.context = audioContext;
 
     /* oscillator initialization */
@@ -51,35 +52,36 @@ class Sound extends React.Component {
     const playSound = !this.state.play;
     this.setState({play: playSound});
   }
+
   render() {
-    {this.init}
     return (
       <div className="soundInit">
-        <CanvasComponent />
+        <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray}/>
+        <button onClick={this.play}>Play</button>
       </div>
     );
   }
 }
 
+/* make canvas continuously draw, regardless of sound */
 class CanvasComponent extends React.Component {
     constructor(props) {
       super(props);
+      this.draw = this.draw.bind(this);
     }
     componentDidMount() { //only called one time, gives access to refs of component's children
       this.updateCanvas();
-      //this.draw();
     }
     updateCanvas() {
-      const canvasContext = this.refs.canvas.getContext('2d');
-      canvasContext.fillStyle = 'rgb(200,200,200)';
-      canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
+      this.canvasContext = this.refs.canvas.getContext('2d');
+      this.canvasContext.fillStyle = 'rgb(200,200,200)';
+      this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
     }
     draw() {
-      const canvasContext = this.refs.canvas.getContext('2d');
       this.drawVisual = requestAnimationFrame(this.draw());
-      canvasContext.lineWidth = 2;
-      canvasContext.strokeStyle = 'rgb(0,0,0)';
-      canvasContext.beginPath();
+      this.canvasContext.lineWidth = 2;
+      this.canvasContext.strokeStyle = 'rgb(0,0,0)';
+      this.canvasContext.beginPath();
       var sliceWidth = this.refs.canvas.width * 1.0 / this.props.bufferLength;
       var x=0;
       for (var i = 0; i < this.props.bufferLength; i++) {
@@ -92,13 +94,13 @@ class CanvasComponent extends React.Component {
         }
         x += sliceWidth;
       }
-      canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
-      canvasContext.stroke();
+      this.canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
+      this.canvasContext.stroke();
     }
     render() {
         return (
             <div>
-              <canvas ref="canvas" width={300} height={256} />
+              <canvas ref="canvas" width={300} height={256}/>
             </div>
         );
     }
@@ -110,7 +112,6 @@ class App extends Component {
     return (
       <div className="App">
         <Sound wave="sine" />
-        <button>Play</button>
       </div>
     );
   }
