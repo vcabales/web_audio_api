@@ -1,1 +1,1 @@
-Exploring the JavaScript Web Audio API with a simple React app. App plays around with basic sine, sawtooth, and square waves.
+Exploring the JavaScript Web Audio API with a simple React app. App plays around with basic sine, sawtooth, and square waves. Initial example in pure JavaScript in oscillator.js. Can also be viewed on Codepen: https://codepen.io/vcabales/pen/qVpraE.
