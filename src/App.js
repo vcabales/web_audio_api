@@ -56,8 +56,7 @@ class Sound extends React.Component {
   render() {
     return (
       <div className="soundInit">
-        <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray}/>
-        <button onClick={this.play}>Play</button>
+        <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray} play={this.state.play} onClick={this.play}/>
       </div>
     );
   }
@@ -68,6 +67,7 @@ class CanvasComponent extends React.Component {
     constructor(props) {
       super(props);
       this.draw = this.draw.bind(this);
+      this.handleClick = this.handleClick.bind(this);
     }
     componentDidMount() { //only called one time, gives access to refs of component's children
       this.updateCanvas();
@@ -76,9 +76,24 @@ class CanvasComponent extends React.Component {
       this.canvasContext = this.refs.canvas.getContext('2d');
       this.canvasContext.fillStyle = 'rgb(200,200,200)';
       this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
+      if (!this.drawVisual) {
+        this.drawVisual = window.requestAnimationFrame(this.draw);
+      }
+    }
+    handleClick(e) {
+      const play = e.target.value;
+      this.props.onClick(play); /* update prop for child component */
+
+      if (this.props.play) {
+        this.draw(); //only working on second click and not toggling?
+      }
     }
     draw() {
-      this.drawVisual = requestAnimationFrame(this.draw());
+      /*
+      this.canvasContext.font = "28px Georgia";
+      this.canvasContext.fillStyle = "blue";
+      this.canvasContext.fillText("Testing draw function", 10, 50);
+      */
       this.canvasContext.lineWidth = 2;
       this.canvasContext.strokeStyle = 'rgb(0,0,0)';
       this.canvasContext.beginPath();
@@ -101,6 +116,7 @@ class CanvasComponent extends React.Component {
         return (
             <div>
               <canvas ref="canvas" width={300} height={256}/>
+              <button onClick={this.handleClick}>Play</button>
             </div>
         );
     }
