@@ -1,3 +1,4 @@
+
 import React, { Component } from 'react';
 import './App.css';
 
@@ -9,7 +10,6 @@ class CanvasComponent extends React.Component {
     constructor(props) {
       super(props);
       this.draw = this.draw.bind(this);
-      this.handleClick = this.handleClick.bind(this);
     }
     componentDidMount() { //only called one time, after the HTML is
       this.updateCanvas();
@@ -22,10 +22,6 @@ class CanvasComponent extends React.Component {
       if (!this._drawVisual) { //initialize requestAnimationFrame
         this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
       }
-    }
-    handleClick(e) {
-      const play = e.target.value;
-      this.props.onClick(play); /* update prop for child component */
     }
     draw() {
 
@@ -59,7 +55,6 @@ class CanvasComponent extends React.Component {
         return (
             <div>
               <canvas ref="canvas" width={300} height={256}/>
-              <button onClick={this.handleClick}>Play</button>
             </div>
         );
     }
@@ -118,7 +113,26 @@ class Sound extends React.Component {
   }
   render() {
     return (
-        <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray} play={this.state.play} onClick={this.play}/>
+        <div>
+          <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray}/>
+          <PlayButton play={this.state.play} onClick={this.play}/>
+        </div>
+    );
+  }
+}
+
+class PlayButton extends React.Component {
+  constructor(props) {
+    super(props);
+    this.handleClick = this.handleClick.bind(this);
+  }
+  handleClick(e) {
+    const play = e.target.value;
+    this.props.onClick(play); /* update prop for child component */
+  }
+  render() {
+    return(
+      <button onClick={this.handleClick}>Play/Pause</button>
     );
   }
 }
