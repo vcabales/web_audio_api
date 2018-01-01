@@ -14,9 +14,8 @@ class CanvasComponent extends React.Component {
     componentDidMount() { //only called one time, after the HTML is
       this.updateCanvas();
     }
-    componentWillReceiveProps(nextProps) {
+    componentWillReceiveProps(nextProps) { //might not need to be in componentWillReceiveProps
       if (this.props.init) {
-        this.initializeAnalyser();
         if (!this._drawVisual) { //initialize requestAnimationFrame
           this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
         }
@@ -27,13 +26,14 @@ class CanvasComponent extends React.Component {
       this.canvasContext.fillStyle = 'rgb(200,200,200)';
       this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
     }
-    initializeAnalyser() {
+    draw() {
       this.props.analyser.fftSize = 2048;
-      this.bufferLength = this.props.analyser.frequencyBinCount;
+      this.bufferLength = this.props.analyser.frequencyBinCount; //TODO: move to draw function so it recalculates
       this.dataArray = new Uint8Array(this.bufferLength);
       this.props.analyser.getByteTimeDomainData(this.dataArray);
-    }
-    draw() {
+      //TODO: Fix weird bug with frequency, pass down play boolean as prop
+      //same error occurs when changing wave type
+      //error: waves not animating
       this.updateCanvas(); //clear canvas before drawing
       this.canvasContext.lineWidth = 2;
       this.canvasContext.strokeStyle = 'rgb(0,0,0)';
