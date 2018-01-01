@@ -14,23 +14,34 @@ class CanvasComponent extends React.Component {
     componentDidMount() { //only called one time, after the HTML is
       this.updateCanvas();
     }
+    componentWillReceiveProps(nextProps) {
+      if (this.props.init) {
+        this.initializeAnalyser();
+        if (!this._drawVisual) { //initialize requestAnimationFrame
+          this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
+        }
+      }
+    }
     updateCanvas() {
       this.canvasContext = this.refs.canvas.getContext('2d');
       this.canvasContext.fillStyle = 'rgb(200,200,200)';
       this.canvasContext.fillRect(0, 0, this.refs.canvas.width, this.refs.canvas.height);
-
-      if (!this._drawVisual) { //initialize requestAnimationFrame
-        this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
-      }
+    }
+    initializeAnalyser() {
+      this.props.analyser.fftSize = 2048;
+      this.bufferLength = this.props.analyser.frequencyBinCount;
+      this.dataArray = new Uint8Array(this.bufferLength);
+      this.props.analyser.getByteTimeDomainData(this.dataArray);
     }
     draw() {
+      this.updateCanvas(); //clear canvas before drawing
       this.canvasContext.lineWidth = 2;
       this.canvasContext.strokeStyle = 'rgb(0,0,0)';
       this.canvasContext.beginPath();
-      var sliceWidth = this.refs.canvas.width * 1.0 / this.props.bufferLength;
+      var sliceWidth = this.refs.canvas.width * 1.0 / this.bufferLength;
       var x=0;
-      for (var i = 0; i < this.props.bufferLength; i++) {
-        var v = this.props.dataArray[i] / 128.0;
+      for (var i = 0; i < this.bufferLength; i++) {
+        var v = this.dataArray[i] / 128.0;
         var y = v * this.refs.canvas.height / 2;
         if (i === 0) {
           this.canvasContext.moveTo(x, y);
@@ -57,13 +68,16 @@ class Sound extends React.Component {
   constructor(props) {
     super(props);
     this.play = this.play.bind(this);
-    this.state = {play: true};
+    this.state = {play: true,
+                  context: audioContext};
   }
   init() {
-    this.context = audioContext;
+    if (!this.state.context) {
+      throw "Audio Web API not supported by this browser.";
+    }
 
     /* oscillator initialization */
-    this.oscillator = this.context.createOscillator();
+    this.oscillator = this.state.context.createOscillator();
     if (this.props.wave === "sine") {
       this.oscillator.type = "sine";
     }
@@ -79,19 +93,16 @@ class Sound extends React.Component {
     this.oscillator.frequency.value = this.props.frequency; //set to A TODO: make frequency customizable
 
     /* volume control initialization */
-    this.oscillator.start(this.context.currentTime);
-    this.gainNode = this.context.createGain(); //gain node controls volume
+    this.oscillator.start(this.state.context.currentTime);
+    this.gainNode = this.state.context.createGain(); //gain node controls volume
     this.gainNode.gain.value = 1;
     this.oscillator.connect(this.gainNode); //connect oscillator to volume control
-    this.gainNode.connect(this.context.destination);
+    this.gainNode.connect(this.state.context.destination);
 
-    /* Initialize analyser */
-    this.analyser = this.context.createAnalyser(); //analyser evaluates drawings
-    this.analyser.fftSize = 2048;
-    this.bufferLength = this.analyser.frequencyBinCount;
-    this.dataArray = new Uint8Array(this.bufferLength);
-    this.analyser.getByteTimeDomainData(this.dataArray);
-    this.gainNode.connect(this.analyser); //connect volume control to analyser
+    this.analyser = this.state.context.createAnalyser(); //analyser evaluates drawings
+    this.analyserInit = true;
+    this.gainNode.connect(this.analyser);
+    this.analyser.connect(this.state.context.destination);
 
   }
   play() {
@@ -107,7 +118,7 @@ class Sound extends React.Component {
   render() {
     return (
         <div>
-          <CanvasComponent bufferLength={this.bufferLength} dataArray={this.dataArray}/>
+          <CanvasComponent analyser={this.analyser} init={this.analyserInit}/>
           <PlayButton play={this.state.play} onClick={this.play}/>
         </div>
     );
@@ -197,7 +208,7 @@ class SliderContainer extends React.Component { //control frequency range
     return(
       <div>
         <input onChange={this.handleChange} type="range" min="16" max="7903" defaultValue="440" className="slider" id="myRange" />
-        <h1>{this.props.freq}</h1>
+        <h1>Frequency: {this.props.freq}</h1>
       </div>
     );
   }
