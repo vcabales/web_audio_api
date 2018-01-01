@@ -24,12 +24,6 @@ class CanvasComponent extends React.Component {
       }
     }
     draw() {
-
-      /* //for debugging
-      this.canvasContext.font = "28px Georgia";
-      this.canvasContext.fillStyle = "blue";
-      this.canvasContext.fillText("Testing draw function", 10, 50); */
-
       this.canvasContext.lineWidth = 2;
       this.canvasContext.strokeStyle = 'rgb(0,0,0)';
       this.canvasContext.beginPath();
@@ -48,8 +42,7 @@ class CanvasComponent extends React.Component {
       this.canvasContext.lineTo(this.refs.canvas.width, this.refs.canvas.height / 2);
       this.canvasContext.stroke();
       //set up next iteration of loop
-      this._drawVisual = window.requestAnimationFrame(this.draw); /* currently not changing, supposed to update every 60 frames*/
-
+      this._drawVisual = window.requestAnimationFrame(this.draw);
     }
     render() {
         return (
@@ -83,7 +76,7 @@ class Sound extends React.Component {
     else if (this.props.wave === "triangle") {
       this.oscillator.type = "triangle";
     }
-    this.oscillator.frequency.value = 440; //set to A TODO: make frequency customizable
+    this.oscillator.frequency.value = this.props.frequency; //set to A TODO: make frequency customizable
 
     /* volume control initialization */
     this.oscillator.start(this.context.currentTime);
@@ -157,9 +150,9 @@ class Wave extends React.Component {
 
     return(
       <div>
-        <Sound wave={this.state.wave}/>
+        <Sound wave={this.state.wave} frequency={this.state.frequency}/>
         <WaveContainer onChange={this.changeWave}/>
-        <SliderContainer onChange={this.changeFrequency}/>
+        <SliderContainer onChange={this.changeFrequency} freq={this.state.frequency}/>
       </div>
     );
   }
@@ -193,13 +186,19 @@ class SliderContainer extends React.Component { //control frequency range
     super(props);
     this.handleChange = this.handleChange.bind(this);
   }
+  componentDidMount() {
+    this.slider = this.refs.input;
+  }
   handleChange(e) {
     const frequency = e.target.value;
     this.props.onChange(frequency);
   }
   render() {
     return(
-      <input onChange={this.handleChange} type="range" min="16.35" max="7902.13" value="440" className="slider" id="myRange" />
+      <div>
+        <input onChange={this.handleChange} type="range" min="16" max="7903" defaultValue="440" className="slider" id="myRange" />
+        <h1>{this.props.freq}</h1>
+      </div>
     );
   }
 }
