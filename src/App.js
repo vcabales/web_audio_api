@@ -4,6 +4,7 @@ import './App.css';
 
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 //only create audio context once
+//TODO: Fix weird startup error, add prettier visualizations
 
 /* make canvas continuously draw, regardless of sound */
 class CanvasComponent extends React.Component {
@@ -15,10 +16,8 @@ class CanvasComponent extends React.Component {
       this.updateCanvas();
     }
     componentWillReceiveProps(nextProps) { //might not need to be in componentWillReceiveProps
-      if (this.props.init) {
-        if (!this._drawVisual) { //initialize requestAnimationFrame
-          this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
-        }
+    if (!this._drawVisual) { //initialize requestAnimationFrame
+      this._drawVisual = window.requestAnimationFrame(this.draw); //draws automatically, resets every 60 frames
       }
     }
     updateCanvas() {
@@ -31,9 +30,6 @@ class CanvasComponent extends React.Component {
       this.bufferLength = this.props.analyser.frequencyBinCount; //TODO: move to draw function so it recalculates
       this.dataArray = new Uint8Array(this.bufferLength);
       this.props.analyser.getByteTimeDomainData(this.dataArray);
-      //TODO: Fix weird bug with frequency, pass down play boolean as prop
-      //same error occurs when changing wave type
-      //error: waves not animating
       this.updateCanvas(); //clear canvas before drawing
       this.canvasContext.lineWidth = 2;
       this.canvasContext.strokeStyle = 'rgb(0,0,0)';
@@ -71,6 +67,10 @@ class Sound extends React.Component {
     this.state = {play: true,
                   context: audioContext};
   }
+  componentWillReceiveProps(nextProps) { //if frequency or wave type change
+    this.oscillator.frequency.value = this.props.frequency;
+    this.setWave();
+  }
   init() {
     if (!this.state.context) {
       throw "Audio Web API not supported by this browser.";
@@ -78,18 +78,7 @@ class Sound extends React.Component {
 
     /* oscillator initialization */
     this.oscillator = this.state.context.createOscillator();
-    if (this.props.wave === "sine") {
-      this.oscillator.type = "sine";
-    }
-    else if (this.props.wave === "sawtooth") {
-      this.oscillator.type = "sawtooth";
-    }
-    else if (this.props.wave === "square") {
-      this.oscillator.type = "square";
-    }
-    else if (this.props.wave === "triangle") {
-      this.oscillator.type = "triangle";
-    }
+    this.setWave();
     this.oscillator.frequency.value = this.props.frequency; //set to A TODO: make frequency customizable
 
     /* volume control initialization */
@@ -104,6 +93,20 @@ class Sound extends React.Component {
     this.gainNode.connect(this.analyser);
     this.analyser.connect(this.state.context.destination);
 
+  }
+  setWave() {
+    if (this.props.wave === "sine") {
+      this.oscillator.type = "sine";
+    }
+    else if (this.props.wave === "sawtooth") {
+      this.oscillator.type = "sawtooth";
+    }
+    else if (this.props.wave === "square") {
+      this.oscillator.type = "square";
+    }
+    else if (this.props.wave === "triangle") {
+      this.oscillator.type = "triangle";
+    }
   }
   play() {
     const playSound = !this.state.play;
